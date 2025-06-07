@@ -19,5 +19,14 @@ export VCPEPUBIP="10.100.2.1"
 # VCPEGW: the default gateway for the vcpe
 export VCPEGW="10.100.2.254"
 
+# VCPEPRIVIP: IP privada por defecto para el vCPE
+VCPEPRIVIP="192.168.255.254"
+
+# CUSTGW: IP privada por defecto para el router del cliente
+CUSTGW="192.168.255.253"
+
+# K8SGW: Router por defecto inicial en k8s (calico)
+K8SGW="169.254.1.1"
+
 # HELM SECTION
 ./k8s_sdedge_start.sh

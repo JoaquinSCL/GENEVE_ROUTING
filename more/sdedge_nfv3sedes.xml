@@ -47,6 +47,8 @@ SPAIN
   <net name="AccessNet2" mode="openvswitch" managed="no"/>
 
   <net name="Internet" mode="openvswitch"/>
+  <net name="lan01" mode="veth" type="p2p"/>
+  <net name="lan0" mode="virtual_bridge" />
 
   <net name="ExtNet1" mode="openvswitch" managed="no"/>
   <net name="ExtNet2" mode="openvswitch" managed="no"/>
@@ -105,6 +107,32 @@ SPAIN
        sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
     </exec>
     <route type="ipv4" gw="10.20.2.1">default</route>
+    </vm>   
+
+    <vm name="h0" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
+    <if id="1" net="lan0">
+        <ipv4>10.20.100.2/24</ipv4>
+    </if>
+    <exec seq="on_boot" type="verbatim">
+       # Change interfaces MTU
+       ifconfig eth1 mtu 1400
+       sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
+    <route type="ipv4" gw="10.20.100.1">default</route>
+  </vm>   
+
+  <vm name="t0" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
+    <if id="1" net="lan0">
+        <ipv4>10.20.100.200/24</ipv4>
+    </if>
+    <exec seq="on_boot" type="verbatim">
+       # Change interfaces MTU
+       ifconfig eth1 mtu 1400
+       sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
+    <route type="ipv4" gw="10.20.100.1">default</route>
   </vm>   
 
   <vm name="r1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -115,8 +143,17 @@ SPAIN
     <if id="2" net="lan11">
         <ipv4>10.20.0.1/24</ipv4>
     </if>
+    <if id="3" net="lan12">
+        <ipv4>192.168.255.253/24</ipv4>
+    </if>
+    <exec seq="on_boot" type="verbatim">
+       # Change interfaces MTU
+       ifconfig eth1 mtu 1400
+       sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.2">10.20.2.0/24</route>
+    <route type="ipv4" gw="10.20.0.100">10.20.100.0/24</route>
     <route type="ipv4" gw="192.168.255.254">0.0.0.0/0</route>
   </vm>   
 
@@ -128,8 +165,17 @@ SPAIN
     <if id="2" net="lan21">
         <ipv4>10.20.0.2/24</ipv4>
     </if>
+    <if id="3" net="lan22">
+        <ipv4>192.168.255.253/24</ipv4>
+    </if>
+    <exec seq="on_boot" type="verbatim">
+       # Change interfaces MTU
+       ifconfig eth1 mtu 1400
+       sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.1">10.20.1.0/24</route>
+    <route type="ipv4" gw="10.20.0.100">10.20.100.0/24</route>
     <route type="ipv4" gw="192.168.255.254">0.0.0.0/0</route>
   </vm>   
 
@@ -148,87 +194,26 @@ SPAIN
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
     <if id="1" net="lan11">
     </if>
-    <if id="2" net="AccessNet1">
+    <if id="2" net="lan12">
+    </if>
+    <if id="3" net="AccessNet1">
       <ipv4>10.255.0.2/24</ipv4>
     </if>
     <exec seq="on_boot" type="verbatim">
-      ip link add name geneve0 type geneve external dstport 6081
-      ip link set geneve0 up
-      ifconfig eth1 up
-      ifconfig eth2 up
-      tc qdisc add dev eth1 ingress
-      tc filter add dev eth1 parent ffff: \
-          protocol ip \
-          matchall \
-          action mirred egress redirect dev geneve0
-      tc filter add dev eth1 parent ffff: \
-          protocol arp \
-          matchall \
-          action mirred egress redirect dev geneve0
-      
-      sudo tc qdisc add dev geneve0 root handle 1: prio
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol ip \
-          flower dst_ip 10.100.3.3 \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          geneve_opts 0FF01:80:11111111 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol ip \
-          flower dst_ip 10.100.3.4 \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          geneve_opts 0FF01:80:22222222 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol ip \
-          flower dst_ip 10.200.1.3 \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          geneve_opts 0FF01:80:44444444 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol arp \
-          matchall \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          action pass
-      sudo ip addr add 10.100.3.8/24 dev geneve0
-      ip neigh flush dev geneve0
-      sudo ip route add 10.100.3.3 dev geneve0
-      sudo ip route add 10.100.3.4 dev geneve0
-      sudo ip route add 10.200.1.3 dev geneve0
-      sudo tc qdisc add dev geneve0 ingress
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
-          flower geneve_opts 0FF01:80:11111111 \
-          action tunnel_key unset \
-          action pass
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
-          flower geneve_opts 0FF01:80:22222222 \
-          action tunnel_key unset \
-          action pass
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
-          flower geneve_opts 0FF01:80:44444444 \
-          action tunnel_key unset \
-          action pass
-      sudo tc filter add dev geneve0 parent ffff: prio 11 \
-          protocol arp \
-          matchall \
-          action tunnel_key unset \
-          action pass
+        service openvswitch-switch start
+        sleep 5
+        ifconfig eth1 up
+        ifconfig eth2 up
+        ovs-vsctl add-br brwan
+        ip link add vxlan1 type vxlan id 1 remote 10.255.0.1 dstport 4789 dev eth3
+        ovs-vsctl add-port brwan eth1
+        ovs-vsctl add-port brwan vxlan1
+        ifconfig vxlan1 up
+        ovs-vsctl add-br brint
+        ip link add vxlan2 type vxlan id 2 remote 10.255.0.1 dstport 8742 dev eth3
+        ovs-vsctl add-port brint eth2
+        ovs-vsctl add-port brint vxlan2
+        ifconfig vxlan2 up
     </exec>
   </vm>
 
@@ -236,76 +221,26 @@ SPAIN
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
     <if id="1" net="lan21">
     </if>
-    <if id="2" net="AccessNet2">
+    <if id="2" net="lan22">
+    </if>
+    <if id="3" net="AccessNet2">
       <ipv4>10.255.0.2/24</ipv4>
     </if>
     <exec seq="on_boot" type="verbatim">
-      ifconfig net1 10.100.1.2/24
-      ip link add name geneve0 type geneve external dstport 6081
-      ip link set geneve0 up
-      sudo tc qdisc add dev geneve0 root handle 1: prio
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol ip \
-          flower dst_ip 10.100.3.3 \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          geneve_opts 0FF01:80:11111111 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol ip \
-          flower dst_ip 10.100.3.4 \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          geneve_opts 0FF01:80:22222222 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol ip \
-          flower dst_ip 10.200.1.3 \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          geneve_opts 0FF01:80:44444444 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol arp \
-          matchall \
-          action tunnel_key set \
-          src_ip 10.100.1.2 \
-          dst_ip 10.100.1.1 \
-          dst_port 6081 \
-          id 1000 \
-          action pass
-      sudo ip addr add 10.100.3.8/24 dev geneve0
-      ip neigh flush dev geneve0
-      sudo ip route add 10.100.3.3 dev geneve0
-      sudo ip route add 10.100.3.4 dev geneve0
-      sudo ip route add 10.200.1.3 dev geneve0
-      sudo tc qdisc add dev geneve0 ingress
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
-          flower geneve_opts 0FF01:80:11111111 \
-          action tunnel_key unset \
-          action pass
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
-          flower geneve_opts 0FF01:80:22222222 \
-          action tunnel_key unset \
-          action pass
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
-          flower geneve_opts 0FF01:80:44444444 \
-          action tunnel_key unset \
-          action pass
-      sudo tc filter add dev geneve0 parent ffff: prio 11 \
-          protocol arp \
-          matchall \
-          action tunnel_key unset \
-          action pass
+        service openvswitch-switch start
+        sleep 5
+        ifconfig eth1 up
+        ifconfig eth2 up
+        ovs-vsctl add-br brwan
+        ip link add vxlan1 type vxlan id 1 remote 10.255.0.1 dstport 4789 dev eth3
+        ovs-vsctl add-port brwan eth1
+        ovs-vsctl add-port brwan vxlan1
+        ifconfig vxlan1 up
+        ovs-vsctl add-br brint
+        ip link add vxlan2 type vxlan id 2 remote 10.255.0.1 dstport 8742 dev eth3
+        ovs-vsctl add-port brint eth2
+        ovs-vsctl add-port brint vxlan2
+        ifconfig vxlan2 up
     </exec>
   </vm>
   <vm name="isp1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -359,3 +294,50 @@ SPAIN
     <route type="ipv4" gw="10.100.3.2">10.100.2.0/24</route>
     <route type="ipv4" gw="10.100.3.1">0.0.0.0/0</route>
   </vm>
+  <vm name="r0" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
+    <if id="1" net="lan01">
+      <ipv4>10.20.0.100/24</ipv4>
+    </if>
+    <if id="2" net="lan0">
+        <ipv4>10.20.100.1/24</ipv4>
+    </if>
+    <exec seq="on_boot" type="verbatim">
+      # Change interfaces MTU
+      ifconfig eth1 mtu 1400
+      sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
+    <forwarding type="ip" />
+    <route type="ipv4" gw="10.20.0.1">10.20.1.0/24</route>
+    <route type="ipv4" gw="10.20.0.2">10.20.2.0/24</route>
+  </vm> 
+
+  <vm name="bcg0" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
+    <if id="1" net="lan01">
+    </if>
+    <if id="2" net="Internet">
+      <ipv4>10.100.3.100/24</ipv4>
+    </if>
+    <route type="ipv4" gw="10.100.3.1">10.100.1.0/24</route>
+    <route type="ipv4" gw="10.100.3.1">10.100.2.0/24</route>
+    <exec seq="on_boot" type="verbatim">
+      service openvswitch-switch start
+      sleep 5
+      ifconfig eth1 up
+      ifconfig eth2 up
+      ovs-vsctl add-br brwan
+#      ip link add sr1sr21 type vxlan id 11 remote 10.100.1.1 dstport 4789 dev eth2
+#      ip link add sr1sr21 type geneve id 11 remote 10.100.1.1
+#      ip link add sr1sr22 type vxlan id 12 remote 10.100.2.1 dstport 4789 dev eth2
+#      ip link add sr1sr22 type geneve id 12 remote 10.100.2.1
+      ovs-vsctl add-port brwan geneve1 -- set interface geneve1 type=geneve options:remote_ip=10.100.1.1
+      ovs-vsctl add-port brwan geneve2 -- set interface geneve2 type=geneve options:remote_ip=10.100.2.1
+      ovs-vsctl add-port brwan eth1
+#      ovs-vsctl add-port brwan sr1sr21
+#      ovs-vsctl add-port brwan sr1sr22
+#      ifconfig sr1sr21 up
+#      ifconfig sr1sr22 up
+    </exec>
+  </vm>
+</vnx>

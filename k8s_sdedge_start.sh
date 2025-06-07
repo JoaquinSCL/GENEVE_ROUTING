@@ -12,9 +12,13 @@ set -u # to verify variables are defined
 : $SDWNS
 : $NETNUM
 : $CUSTUNIP
+: $CUSTPREFIX
 : $VNFTUNIP
 : $VCPEPUBIP
 : $VCPEGW
+: $VCPEPRIVIP
+: $CUSTGW
+: $K8SGW
 
 export KUBECTL="microk8s kubectl"
 
@@ -23,7 +27,7 @@ echo "## 0. Instalación de las vnfs"
 
 echo "### 0.1 Limpieza (ignorar errores)"
 
-for vnf in access cpe wan
+for vnf in server
 do
   helm -n $SDWNS uninstall $vnf$NETNUM 
 done
@@ -33,26 +37,16 @@ echo ''
 
 echo "### 0.2 Creación de contenedores"
 
-chart_suffix="chart-0.1.0.tgz"
-for vnf in access cpe wan
+for vnf in server 
 do
-  echo '#### $vnf$NETNUM'
-  helm -n $SDWNS install $vnf$NETNUM $vnf$chart_suffix
+  echo "#### $vnf$NETNUM"
+  helm -n $SDWNS install $vnf$NETNUM cpechart/ --values cpechart/values.yaml --set deployment.network="accessnet$NETNUM\,extnet$NETNUM\,mplswan"
 done
 
 for i in {1..30}; do echo -n "."; sleep 1; done
 echo ''
 
-export VACC="deploy/access$NETNUM-accesschart"
-export VCPE="deploy/cpe$NETNUM-cpechart"
-export VWAN="deploy/wan$NETNUM-wanchart"
+export VSERV="deploy/server$NETNUM"
 
-./start_corpcpe.sh
 ./start_sdedge.sh
 
-echo "--"
-echo "$(basename "$0")"
-echo "K8s deployments para la red $NETNUM:"
-echo $VACC
-echo $VCPE
-echo $VWAN

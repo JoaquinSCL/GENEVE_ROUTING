@@ -16,77 +16,169 @@ set -u # to verify variables are defined
 : $KUBECTL
 : $SDWNS
 : $NETNUM
-: $VACC
-: $VCPE
-: $VWAN
+: $VSERV
 : $CUSTUNIP
 : $CUSTPREFIX
 : $VNFTUNIP
 : $VCPEPUBIP
 : $VCPEGW
+: $VCPEPRIVIP
+: $CUSTGW
+: $K8SGW
 
-if [[ ! $VACC =~ "-accesschart"  ]]; then
+if [[ ! $VSERV =~ "-serverchart"  ]]; then
     echo ""       
-    echo "ERROR: incorrect <access_deployment_id>: $VACC"
+    echo "ERROR: incorrect <server_deployment_id>: $VSERV"
     exit 1
 fi
 
-if [[ ! $VCPE =~ "-cpechart"  ]]; then
-    echo ""       
-    echo "ERROR: incorrect <cpe_deployment_id>: $VCPE"
-    exit 1
-fi
+SERV_EXEC="$KUBECTL exec -n $SDWNS $VSERV --"
 
-if [[ ! $VWAN =~ "-wanchart"  ]]; then
-    echo ""       
-    echo "ERROR: incorrect <wan_deployment_id>: $VWAN"
-    exit 1
-fi
+# ## 1. En VNF:server configurar reglas, IPs y rutas
+echo "## 1. En VNF:server configurar reglas, IPs y rutas"
 
+$SERV_EXEC ifconfig net1 10.100.1.1/24
+$SERV_EXEC ifconfig net2 10.200.1.1/24
+$SERV_EXEC ip link add name geneve0 type geneve external dstport 6081
+$SERV_EXEC ip link set geneve0 up
+$SERV_EXEC ip link add name geneve1 type geneve external dstport 6084
+$SERV_EXEC ip link set geneve1 up
 
+$SERV_EXEC tc qdisc add dev geneve0 ingress
+$SERV_EXEC tc filter add dev geneve0 parent ffff: prio 10 \
+    flower geneve_opts 0FF01:80:11111111 \
+    action tunnel_key unset \
+    action mirred egress redirect dev net3
+$SERV_EXEC tc filter add dev geneve0 parent ffff: prio 10 \
+    flower geneve_opts 0FF01:80:22222222 \
+    action tunnel_key unset \
+    action mirred egress redirect dev geneve1
+$SERV_EXEC tc filter add dev geneve0 parent ffff: prio 10 \
+    flower geneve_opts 0FF01:80:44444444 \
+    action tunnel_key unset \
+    action mirred egress redirect dev net2
+$SERV_EXEC tc filter add dev geneve0 parent ffff: prio 11 \
+    protocol arp \
+    flower arp_tip 10.100.3.3 \
+    action tunnel_key unset \
+    action mirred egress redirect dev net3
+$SERV_EXEC tc filter add dev geneve0 parent ffff: prio 11 \
+    protocol arp \
+    flower arp_tip 10.100.3.4 \
+    action tunnel_key unset \
+    action mirred egress redirect dev geneve1
+$SERV_EXEC tc filter add dev geneve0 parent ffff: prio 11 \
+    protocol arp \
+    flower arp_tip 10.200.1.3 \
+    action tunnel_key unset \
+    action mirred egress redirect dev net2
 
-ACC_EXEC="$KUBECTL exec -n $SDWNS $VACC --"
-CPE_EXEC="$KUBECTL exec -n $SDWNS $VCPE --"
-WAN_EXEC="$KUBECTL exec -n $SDWNS $VWAN --"
+$SERV_EXEC tc qdisc add dev geneve1 ingress
+$SERV_EXEC tc filter add dev geneve1 parent ffff: prio 10 \
+    flower geneve_opts 0FF01:80:33333333 \
+    action tunnel_key unset \
+    action mirred egress redirect dev geneve0         
+$SERV_EXEC tc filter add dev geneve1 parent ffff: prio 11 \
+    protocol arp \
+    matchall \
+    action tunnel_key unset \
+    action mirred egress redirect dev geneve0
 
-# IP privada por defecto para el vCPE
-VCPEPRIVIP="192.168.255.254"
-# IP privada por defecto para el router del cliente
-CUSTGW="192.168.255.253"
+$SERV_EXEC ip addr add 10.100.3.1/24 dev geneve0
+$SERV_EXEC ip addr add 10.100.3.2/24 dev geneve1
 
-# Router por defecto inicial en k8s (calico)
-K8SGW="169.254.1.1"
+$SERV_EXEC tc qdisc add dev geneve0 root handle 1: prio
+$SERV_EXEC tc filter add dev geneve0 parent 1: \
+    protocol ip \
+    flower src_ip 10.100.3.3  \
+    action tunnel_key set \
+    src_ip 10.100.1.1 \
+    dst_ip 10.100.1.2 \
+    dst_port 6081 \
+    id 1000 \
+    geneve_opts 0FF01:80:11111111 \
+    pass
+$SERV_EXEC tc filter add dev geneve0 parent 1: \
+    protocol ip \
+    flower src_ip 10.100.3.4 \
+    action tunnel_key set \
+    src_ip 10.100.1.1 \
+    dst_ip 10.100.1.2 \
+    dst_port 6081 \
+    id 1000 \
+    geneve_opts 0FF01:80:22222222 \
+    pass
+$SERV_EXEC tc filter add dev geneve0 parent 1: \
+    protocol ip \
+    flower src_ip 10.200.1.3 \
+    action tunnel_key set \
+    src_ip 10.100.1.1 \
+    dst_ip 10.100.1.2 \
+    dst_port 6081 \
+    id 1000 \
+    geneve_opts 0FF01:80:44444444 \
+    pass
+$SERV_EXEC tc filter add dev geneve0 parent 1: \
+    protocol arp \
+    matchall \
+    action tunnel_key set \
+    src_ip 10.100.1.1 \
+    dst_ip 10.100.1.2 \
+    dst_port 6081 \
+    id 1000 \
+    action pass
 
-## 1. Obtener IPs de las VNFs
-echo "## 1. Obtener IPs de las VNFs"
-IPACCESS=`$ACC_EXEC hostname -I | awk '{print $1}'`
-echo "IPACCESS = $IPACCESS"
+$SERV_EXEC tc qdisc add dev geneve1 root handle 2: prio
+$SERV_EXEC tc filter add dev geneve1 parent 2: \
+    protocol ip \
+    flower dst_ip 10.100.3.4 \
+    action tunnel_key set \
+    src_ip 10.200.1.1 \
+    dst_ip 10.200.1.2 \
+    dst_port 6084 \
+    id 1000 \
+    geneve_opts 0FF01:80:33333333 \
+    pass
+$SERV_EXEC tc filter add dev geneve1 parent 2: \
+    protocol arp \
+    matchall \
+    action tunnel_key set \
+    src_ip 10.200.1.1 \
+    dst_ip 10.200.1.2 \
+    dst_port 6084 \
+    id 1000 \
+    pass
 
-IPCPE=`$CPE_EXEC hostname -I | awk '{print $1}'`
-echo "IPCPE = $IPCPE"
+$SERV_EXEC tc qdisc add dev net3 ingress
+$SERV_EXEC tc filter add dev net3 parent ffff: \
+    protocol ip \
+    flower src_ip 10.100.3.3 \
+    action mirred egress redirect dev geneve0
+$SERV_EXEC tc filter add dev net3 parent ffff: \
+    protocol arp \
+    matchall \
+    action mirred egress redirect dev geneve0
 
-IPWAN=`$WAN_EXEC hostname -I | awk '{print $1}'`
-echo "IPWAN = $IPWAN"
+$SERV_EXEC tc qdisc add dev net2 ingress
+$SERV_EXEC tc filter add dev net2 parent ffff: \
+    protocol ip \
+    flower src_ip 10.200.1.3 \
+    action mirred egress redirect dev geneve0
+$SERV_EXEC tc filter add dev net2 parent ffff: \
+    protocol arp \
+    flower arp_sip 10.200.1.3 \
+    action mirred egress redirect dev geneve0
+    
 
-## 2. Iniciar el Servicio OpenVirtualSwitch en wan VNF:
-echo "## 2. Iniciar el Servicio OpenVirtualSwitch en wan VNF"
-$WAN_EXEC service openvswitch-switch start
+# ## 4. En VNF:cpe agregar un bridge y configurar IPs y rutas
+# echo "## 4. En VNF:cpe agregar un bridge y configurar IPs y rutas"
+# $CPE_EXEC ovs-vsctl add-br brint
+# $CPE_EXEC ifconfig brint $VCPEPRIVIP/24
+# $CPE_EXEC ifconfig net$NETNUM $VCPEPUBIP/24
+# $CPE_EXEC ip route del 0.0.0.0/0 via $K8SGW
+# $CPE_EXEC ip route add 0.0.0.0/0 via $VCPEGW
+# $CPE_EXEC ip route add $CUSTPREFIX via $CUSTGW
 
-## 3. En VNF:access agregar un bridge y sus vxlans
-echo "## 3. En VNF:access agregar un bridge y sus vxlan"
-$ACC_EXEC ovs-vsctl add-br brwan
-$ACC_EXEC ip link add vxlan1 type vxlan id 1 remote $CUSTUNIP dstport 4789 dev net$NETNUM
-$ACC_EXEC ip link add axswan type vxlan id 3 remote $IPWAN dstport 4788 dev eth0
-$ACC_EXEC ovs-vsctl add-port brwan vxlan1
-$ACC_EXEC ovs-vsctl add-port brwan axswan
-$ACC_EXEC ifconfig vxlan1 up
-$ACC_EXEC ifconfig axswan up
-
-## 4. En VNF:wan agregar el conmutador y su vxlan
-echo "## 4. En VNF:wan agregar el conmutador y su vxlan"
-$WAN_EXEC ovs-vsctl add-br brwan
-$WAN_EXEC ip link add axswan type vxlan id 3 remote $IPACCESS dstport 4788 dev eth0
-$WAN_EXEC ovs-vsctl add-port brwan axswan
-#in the following, it should be net1 (only one MplsNet)
-$WAN_EXEC ovs-vsctl add-port brwan net1
-$WAN_EXEC ifconfig axswan up
+# ## 5. En VNF:cpe activar NAT para dar salida a Internet
+# echo "## 5. En VNF:cpe activar NAT para dar salida a Internet"
+# $CPE_EXEC /vnx_config_nat brint net$NETNUM
