@@ -19,6 +19,9 @@ set -u # to verify variables are defined
 : $VCPEPRIVIP
 : $CUSTGW
 : $K8SGW
+: $HIPEXT
+: $TIPEXT
+: $VCPEPUBIPEXT
 
 export KUBECTL="microk8s kubectl"
 
@@ -40,13 +43,13 @@ echo "### 0.2 Creación de contenedores"
 for vnf in server 
 do
   echo "#### $vnf$NETNUM"
-  helm -n $SDWNS install $vnf$NETNUM cpechart/ --values cpechart/values.yaml --set deployment.network="accessnet$NETNUM\,extnet$NETNUM\,mplswan"
+  helm -n $SDWNS install $vnf$NETNUM helm/cpechart/ --values helm/cpechart/values.yaml --set deployment.network="accessnet$NETNUM\,extnet$NETNUM\,mplswan"
 done
 
 for i in {1..30}; do echo -n "."; sleep 1; done
 echo ''
 
-export VSERV="deploy/server$NETNUM"
+export VSERV="deploy/server$NETNUM-cpechart"
 
 ./start_sdedge.sh
 

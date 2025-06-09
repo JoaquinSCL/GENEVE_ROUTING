@@ -39,11 +39,9 @@ SPAIN
     
   <net name="lan1" mode="virtual_bridge" />
   <net name="lan11" mode="veth" type="p2p"/>
-  <net name="lan12" mode="veth" type="p2p"/>
   <net name="AccessNet1" mode="openvswitch" managed="no"/>
   <net name="lan2" mode="virtual_bridge" />
   <net name="lan21" mode="veth" type="p2p"/>
-  <net name="lan22" mode="veth" type="p2p"/>
   <net name="AccessNet2" mode="openvswitch" managed="no"/>
 
   <net name="Internet" mode="openvswitch"/>
@@ -261,8 +259,8 @@ SPAIN
           protocol ip \
           flower dst_ip 10.20.1.2 \
           action tunnel_key set \
-          src_ip 10.255.0.1 \
-          dst_ip 10.255.0.2 \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:11111111 \
@@ -271,8 +269,8 @@ SPAIN
           protocol ip \
           flower dst_ip 10.20.1.200 \
           action tunnel_key set \
-          src_ip 10.255.0.1 \
-          dst_ip 10.255.0.2 \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
@@ -281,8 +279,8 @@ SPAIN
           protocol ip \
           flower dst_ip 192.168.255.254 \
           action tunnel_key set \
-          src_ip 10.255.0.1 \
-          dst_ip 10.255.0.2 \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444 \
@@ -291,8 +289,8 @@ SPAIN
           protocol arp \
           matchall \
           action tunnel_key set \
-          src_ip 10.255.0.1 \
-          dst_ip 10.255.0.2 \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
           dst_port 6081 \
           id 1000 \
           action pass
@@ -375,3 +373,4 @@ SPAIN
     <route type="ipv4" gw="10.100.3.2">10.100.2.0/24</route>
     <route type="ipv4" gw="10.100.3.1">0.0.0.0/0</route>
   </vm>
+</vnx>
