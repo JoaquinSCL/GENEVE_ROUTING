@@ -19,6 +19,9 @@ export VCPEPUBIP="10.100.1.1"
 # VCPEPUBIPEXT: the public ip address for the vcpe in the other side of the tunnel
 export VCPEPUBIPEXT="10.100.2.1"
 
+# HIPINT: the public ip address for the host of the other headquarters
+export HIPINT="10.20.1.2"
+
 # HIPEXT: the public ip address for the host of the other headquarters
 export HIPEXT="10.20.2.2"
 
@@ -31,8 +34,11 @@ export VCPEGW="10.100.1.254"
 # VCPEPRIVIP: IP privada por defecto para el vCPE
 export VCPEPRIVIP="192.168.255.254"
 
+# GEN1IP: the public ip address for geneve1 interface
+export GEN1IP="10.100.169.1"
+
 # CUSTGW: IP privada por defecto para el router del cliente
-export CUSTGW="192.168.255.253"
+export CUSTGW="10.255.0.2"
 
 # K8SGW: Router por defecto inicial en k8s (calico)
 export K8SGW="169.254.1.1"

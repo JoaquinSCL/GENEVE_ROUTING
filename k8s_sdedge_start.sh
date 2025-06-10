@@ -21,6 +21,8 @@ set -u # to verify variables are defined
 : $K8SGW
 : $HIPEXT
 : $TIPEXT
+: $HIPINT
+: $GEN1IP
 : $VCPEPUBIPEXT
 
 export KUBECTL="microk8s kubectl"

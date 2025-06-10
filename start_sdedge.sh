@@ -25,6 +25,10 @@ set -u # to verify variables are defined
 : $VCPEPRIVIP
 : $CUSTGW
 : $K8SGW
+: $HIPEXT
+: $TIPEXT
+: $HIPINT
+: $GEN1IP
 
 if [[ ! $VSERV =~ "-cpechart"  ]]; then
     echo ""       
@@ -43,9 +47,17 @@ $SERV_EXEC ip link set geneve0 up
 echo "### putita2"
 $SERV_EXEC ip link add name geneve1 type geneve external dstport 6084
 $SERV_EXEC ip link set geneve1 up
+$SERV_EXEC ifconfig geneve1 $GEN1IP/24
 echo "### putita3"
-$SERV_EXEC ifconfig net2 $VCPEPUBIP/24
+
+
 $SERV_EXEC ifconfig net1 $VNFTUNIP/24
+$SERV_EXEC ifconfig net2 $VCPEPUBIP/24
+$SERV_EXEC ifconfig geneve0 10.255.1.1/24
+$SERV_EXEC ip route add $HIPEXT dev geneve1
+
+
+$SERV_EXEC ip route add $CUSTPREFIX via $CUSTGW
 
 echo "### putita4"
 $SERV_EXEC tc qdisc add dev geneve0 ingress
@@ -111,7 +123,7 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: \
     pass
 $SERV_EXEC tc filter add dev geneve0 parent 1: \
     protocol arp \
-    matchall \
+    flower arp_tip $HIPINT \
     action tunnel_key set \
     src_ip $VNFTUNIP \
     dst_ip $CUSTUNIP \
@@ -132,7 +144,7 @@ $SERV_EXEC tc filter add dev geneve1 parent 2: \
     pass
 $SERV_EXEC tc filter add dev geneve1 parent 2: \
     protocol arp \
-    matchall \
+    flower arp_tip $HIPEXT \
     action tunnel_key set \
     src_ip $VCPEPUBIP \
     dst_ip $VCPEPUBIPEXT \
@@ -147,7 +159,7 @@ $SERV_EXEC tc filter add dev geneve1 parent ffff: prio 10 \
     action mirred egress redirect dev geneve0         
 $SERV_EXEC tc filter add dev geneve1 parent ffff: prio 11 \
     protocol arp \
-    matchall \
+    flower arp_tip $HIPEXT \
     action tunnel_key unset \
     action mirred egress redirect dev geneve0
 
@@ -178,7 +190,7 @@ $SERV_EXEC tc filter add dev net3 parent ffff: \
 # $CPE_EXEC ifconfig brint $VCPEPRIVIP/24
 # $CPE_EXEC ip route del 0.0.0.0/0 via $K8SGW
 # $CPE_EXEC ip route add 0.0.0.0/0 via $VCPEGW
-# $CPE_EXEC ip route add $CUSTPREFIX via $CUSTGW
+
 
 # ## 5. En VNF:cpe activar NAT para dar salida a Internet
 # echo "## 5. En VNF:cpe activar NAT para dar salida a Internet"

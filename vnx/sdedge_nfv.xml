@@ -205,9 +205,10 @@ SPAIN
           id 1000 \
           action pass
       ## sudo ip addr add 10.100.3.8/24 dev geneve0
+      ip addr add 10.255.1.2/24 dev geneve0
       ip neigh flush dev geneve0
-      sudo ip route add 10.200.2.2 dev geneve0
-      sudo ip route add 10.200.2.200 dev geneve0
+      sudo ip route add 10.20.2.2 dev geneve0
+      sudo ip route add 10.20.2.200 dev geneve0
       sudo ip route add 192.168.255.254 dev geneve0
       sudo tc qdisc add dev geneve0 ingress
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
@@ -295,9 +296,10 @@ SPAIN
           id 1000 \
           action pass
       ## sudo ip addr add 10.100.3.8/24 dev geneve0
+      ip addr add 10.255.1.2/24 dev geneve0
       ip neigh flush dev geneve0
-      sudo ip route add 10.200.1.2 dev geneve0
-      sudo ip route add 10.200.1.200 dev geneve0
+      sudo ip route add 10.20.1.2 dev geneve0
+      sudo ip route add 10.20.1.200 dev geneve0
       sudo ip route add 192.168.255.254 dev geneve0
       sudo tc qdisc add dev geneve0 ingress
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
