@@ -10,6 +10,15 @@ export CUSTUNIP="10.255.0.2"
 # CUSTPREFIX: the customer private prefix
 export CUSTPREFIX="10.20.1.0/24"
 
+# CUSTGW: the default gateway for the customer side
+export CUSTGW="10.20.0.1"
+
+# CUSTPREFIXEXT: the customer private prefix
+export CUSTPREFIXEXT="10.20.2.0/24"
+
+# CUSTGWEXT: the default gateway for the customer side
+export CUSTGWEXT="10.20.0.2"
+
 # VNFTUNIP: the ip address for the vnf side of the tunnel
 export VNFTUNIP="10.255.0.1"
 
@@ -19,11 +28,17 @@ export VCPEPUBIP="10.100.1.1"
 # VCPEPUBIPEXT: the public ip address for the vcpe in the other side of the tunnel
 export VCPEPUBIPEXT="10.100.2.1"
 
+# VCPEPUBIPEXT: the public ip address for the vcpe in the other side of the tunnel
+export VCPEPUBPREFIXEXT="10.100.3.0/24"
+
 # HIPINT: the public ip address for the host of the other headquarters
 export HIPINT="10.20.1.2"
 
 # HIPEXT: the public ip address for the host of the other headquarters
 export HIPEXT="10.20.2.2"
+
+# TIPINT: the public ip address for the host of the other headquarters
+export TIPINT="10.20.1.200"
 
 # TIPEXT: the public ip address for the host of the other headquarters
 export TIPEXT="10.20.2.200"
@@ -36,9 +51,6 @@ export VCPEPRIVIP="192.168.255.254"
 
 # GEN1IP: the public ip address for geneve1 interface
 export GEN1IP="10.100.169.1"
-
-# CUSTGW: IP privada por defecto para el router del cliente
-export CUSTGW="10.255.0.2"
 
 # K8SGW: Router por defecto inicial en k8s (calico)
 export K8SGW="169.254.1.1"

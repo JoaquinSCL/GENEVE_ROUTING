@@ -204,12 +204,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           action pass
-      ## sudo ip addr add 10.100.3.8/24 dev geneve0
-      ip addr add 10.255.1.2/24 dev geneve0
-      ip neigh flush dev geneve0
-      sudo ip route add 10.20.2.2 dev geneve0
-      sudo ip route add 10.20.2.200 dev geneve0
-      sudo ip route add 192.168.255.254 dev geneve0
+
       sudo tc qdisc add dev geneve0 ingress
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:11111111 \
@@ -230,7 +225,6 @@ SPAIN
           action mirred egress redirect dev eth1
     </exec>
     <forwarding type="ip" />
-    <route type="ipv4" gw="10.20.0.1">10.20.1.0/24</route>
   </vm>
 
   <vm name="bcg2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -295,12 +289,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           action pass
-      ## sudo ip addr add 10.100.3.8/24 dev geneve0
-      ip addr add 10.255.1.2/24 dev geneve0
-      ip neigh flush dev geneve0
-      sudo ip route add 10.20.1.2 dev geneve0
-      sudo ip route add 10.20.1.200 dev geneve0
-      sudo ip route add 192.168.255.254 dev geneve0
+
       sudo tc qdisc add dev geneve0 ingress
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:11111111 \
@@ -321,7 +310,6 @@ SPAIN
           action mirred egress redirect dev eth1
     </exec>
     <forwarding type="ip" />
-    <route type="ipv4" gw="10.20.0.2">10.20.2.0/24</route>
   </vm>
 
   <vm name="isp1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
