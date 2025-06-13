@@ -29,7 +29,7 @@ export VCPEPUBIP="10.100.2.1"
 export VCPEPUBIPEXT="10.100.1.1"
 
 # VCPEPUBIPEXT: the public ip address for the vcpe in the other side of the tunnel
-export VCPEPUBPREFIXEXT="10.100.3.0/24"
+export VCPEPUBPREFIXEXT="10.100.1.0/24"
 
 # HIPINT: the public ip address for the host of the other headquarters
 export HIPINT="10.20.2.2"

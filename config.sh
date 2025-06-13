@@ -4,8 +4,6 @@ bin/prepare-k8slab
 
 source ~/.bashrc
 
-export KUBECTL="microk8s kubectl"
-
 sudo vnx -f vnx/sdedge_nfv.xml -P
 
 sudo vnx -f vnx/sdedge_nfv.xml -t
@@ -20,6 +18,6 @@ sudo vnx -f vnx/sdedge_nfv.xml -t
 
 #./start_wg.sh
 
-kubectl get all -n rdsv
-
 echo "Terminado"
+
+microk8s kubectl get all -n rdsv

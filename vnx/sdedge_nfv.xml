@@ -115,7 +115,6 @@ SPAIN
     </if>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.2">10.20.2.0/24</route>
-    <route type="ipv4" gw="192.168.255.254">0.0.0.0/0</route>
   </vm>   
 
   <vm name="r2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -128,7 +127,6 @@ SPAIN
     </if>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.1">10.20.1.0/24</route>
-    <route type="ipv4" gw="192.168.255.254">0.0.0.0/0</route>
   </vm>   
 
   <vm name="voip-gw" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -155,16 +153,19 @@ SPAIN
       ifconfig eth1 up
       ifconfig eth2 up
       tc qdisc add dev eth1 ingress
+      # Redirige todo el tráfico IP entrante en eth1 hacia geneve0
       tc filter add dev eth1 parent ffff: \
           protocol ip \
           matchall \
           action mirred egress redirect dev geneve0
+      # Redirige todo el tráfico ARP entrante en eth1 hacia geneve0
       tc filter add dev eth1 parent ffff: \
           protocol arp \
           matchall \
           action mirred egress redirect dev geneve0
       
       sudo tc qdisc add dev geneve0 root handle 1: prio
+      # Encapsula tráfico IP destinado a 10.20.2.2 con opciones Geneve 11111111 y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
           flower dst_ip 10.20.2.2 \
@@ -175,6 +176,7 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:11111111 \
           pass
+      # Encapsula tráfico IP destinado a 10.20.2.200 con opciones Geneve 22222222 y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
           flower dst_ip 10.20.2.200 \
@@ -185,6 +187,7 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
           pass
+      # Encapsula tráfico IP destinado a 192.168.255.254 con opciones Geneve 44444444 y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
           flower dst_ip 192.168.255.254 \
@@ -195,6 +198,7 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:44444444 \
           pass
+      # Encapsula todo el tráfico ARP saliente con Geneve y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol arp \
           matchall \
@@ -206,25 +210,28 @@ SPAIN
           action pass
 
       sudo tc qdisc add dev geneve0 ingress
+      # Desencapsula tráfico con opciones Geneve 11111111 recibido en geneve0 y lo redirige a eth1
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:11111111 \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
+      # Desencapsula tráfico con opciones Geneve 22222222 recibido en geneve0 y lo redirige a eth1
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:22222222 \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
+      # Desencapsula tráfico con opciones Geneve 44444444 recibido en geneve0 y lo redirige a eth1
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:44444444 \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
+      # Redirige todo el tráfico ARP recibido en geneve0 a eth1 tras quitar el túnel
       sudo tc filter add dev geneve0 parent ffff: prio 11 \
           protocol arp \
           matchall \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
     </exec>
-    <forwarding type="ip" />
   </vm>
 
   <vm name="bcg2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -239,6 +246,9 @@ SPAIN
       ip link set geneve0 up
       ifconfig eth1 up
       ifconfig eth2 up
+
+      ## La sección duplicada en bcg2 realiza exactamente lo mismo, solo cambia el destino (10.20.1.x) en lugar de 10.20.2.x
+
       tc qdisc add dev eth1 ingress
       tc filter add dev eth1 parent ffff: \
           protocol ip \
@@ -309,7 +319,6 @@ SPAIN
           action tunnel_key unset \
           action mirred egress redirect dev eth1
     </exec>
-    <forwarding type="ip" />
   </vm>
 
   <vm name="isp1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -325,13 +334,8 @@ SPAIN
     </if>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.100.3.2">10.100.2.0/24</route>
+
     <filetree seq="on_boot" root="/usr/bin/" perms="755">/usr/bin/vnx_config_nat</filetree>
-    <exec seq="on_boot" type="verbatim">
-       sleep 1
-       dhclient eth9
-       sleep 1
-       /usr/bin/vnx_config_nat eth1 eth9
-    </exec>
   </vm>
   <vm name="isp2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
@@ -347,12 +351,6 @@ SPAIN
     <forwarding type="ip" />
     <route type="ipv4" gw="10.100.3.1">10.100.1.0/24</route>
     <filetree seq="on_boot" root="/usr/bin/" perms="755">/usr/bin/vnx_config_nat</filetree>
-    <exec seq="on_boot" type="verbatim">
-       sleep 1
-       dhclient eth9
-       sleep 1
-       /usr/bin/vnx_config_nat eth1 eth9
-    </exec>
   </vm>
   <vm name="s1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>

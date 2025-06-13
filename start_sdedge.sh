@@ -43,65 +43,67 @@ SERV_EXEC="$KUBECTL exec -n $SDWNS $VSERV --"
 # ## 1. En VNF:server configurar reglas, IPs y rutas
 echo "## 1. En VNF:server configurar reglas, IPs y rutas"
 
-echo "### putita"
 $SERV_EXEC ip link add name geneve0 type geneve external dstport 6081
 $SERV_EXEC ip link set geneve0 up
-echo "### putita2"
 $SERV_EXEC ip link add name geneve1 type geneve external dstport 6084
 $SERV_EXEC ip link set geneve1 up
 # $SERV_EXEC ifconfig geneve1 $GEN1IP/24
-echo "### putita3"
 
 
 $SERV_EXEC ifconfig net1 $VNFTUNIP/24
 $SERV_EXEC ifconfig net2 $VCPEPUBIP/24
 #$SERV_EXEC ip addr add 10.20.0.3/24 dev geneve0
 #$SERV_EXEC ip addr add 10.20.0.4/24 dev geneve1
-# echo "### putita3.1"
 # $SERV_EXEC ip route add $CUSTPREFIX via $CUSTUNIP
-# echo "### putita3.2"
 # $SERV_EXEC ip route add $CUSTPREFIXEXT via $CUSTGWEXT
-# $SERV_EXEC ip route add $VCPEPUBPREFIXEXT via $VCPEGW dev net2
-$SERV_EXEC ip route add 10.100.2.1 dev net2
+$SERV_EXEC ip route add $VCPEPUBPREFIXEXT via $VCPEGW dev net2
 
-echo "### putita4"
+
+
 $SERV_EXEC tc qdisc add dev geneve0 ingress
+# Redirige tráfico Geneve con opción 0x11111111 desde geneve0 hacia geneve1
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 10 \
     flower geneve_opts 0FF01:80:11111111 \
     action tunnel_key unset \
     action mirred egress redirect dev geneve1
+# Redirige tráfico Geneve con opción 0x22222222 desde geneve0 hacia net3
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 10 \
     flower geneve_opts 0FF01:80:22222222 \
     action tunnel_key unset \
     action mirred egress redirect dev net3
+# Redirige tráfico Geneve con opción 0x44444444 desde geneve0 hacia net2
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 10 \
     flower geneve_opts 0FF01:80:44444444 \
     action tunnel_key unset \
     action mirred egress redirect dev net2
 
+# Redirige ARP hacia $CUSTGWEXT desde geneve0 hacia geneve1
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 12 \
     protocol arp \
     flower arp_tip $CUSTGWEXT \
     action tunnel_key unset \
     action mirred egress redirect dev geneve1
+# Redirige ARP hacia $HIPEXT desde geneve0 hacia geneve1
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 11 \
     protocol arp \
     flower arp_tip $HIPEXT \
     action tunnel_key unset \
     action mirred egress redirect dev geneve1
+# Redirige ARP hacia $TIPEXT desde geneve0 hacia net3
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 11 \
     protocol arp \
     flower arp_tip $TIPEXT \
     action tunnel_key unset \
     action mirred egress redirect dev net3
+# Redirige ARP hacia internet desde geneve0 hacia net2
 $SERV_EXEC tc filter add dev geneve0 parent ffff: prio 11 \
     protocol arp \
     flower arp_tip 192.168.255.254 \
     action tunnel_key unset \
     action mirred egress redirect dev net2
 
-echo "### putita5"
 $SERV_EXEC tc qdisc add dev geneve0 root handle 1: prio
+# Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve1 con opción 0x11111111
 $SERV_EXEC tc filter add dev geneve0 parent 1: prio 10 \
     protocol ip \
     flower dst_ip $HIPINT \
@@ -112,7 +114,7 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: prio 10 \
     id 1000 \
     geneve_opts 0FF01:80:11111111 \
     pass
-echo "### putita6"
+# Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve1 con opción 0x22222222
 $SERV_EXEC tc filter add dev geneve0 parent 1: prio 10 \
     protocol ip \
     flower dst_ip $TIPINT \
@@ -123,7 +125,7 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: prio 10 \
     id 1000 \
     geneve_opts 0FF01:80:22222222 \
     pass
-echo "### putita7"
+# Encapsula y permite IP desde 192.168.255.254 desde geneve0 hacia geneve1 con opción 0x44444444
 $SERV_EXEC tc filter add dev geneve0 parent 1: prio 10 \
     protocol ip \
     flower src_ip 192.168.255.254 \
@@ -134,7 +136,7 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: prio 10 \
     id 1000 \
     geneve_opts 0FF01:80:44444444 \
     pass
-echo "### putita8"
+# Encapsula y permite ARP hacia $HIPINT desde geneve0 hacia geneve1
 $SERV_EXEC tc filter add dev geneve0 parent 1: prio 11\
     protocol arp \
     flower arp_tip $HIPINT \
@@ -144,6 +146,7 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: prio 11\
     dst_port 6081 \
     id 1000 \
     action pass
+# Encapsula y permite ARP hacia $TIPINT desde geneve0 hacia geneve1
 $SERV_EXEC tc filter add dev geneve0 parent 1: prio 11\
     protocol arp \
     flower arp_tip $TIPINT \
@@ -153,7 +156,7 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: prio 11\
     dst_port 6081 \
     id 1000 \
     action pass
-echo "### putita9"
+# Encapsula y permite todos los ARP restantes desde geneve0 hacia geneve1
 $SERV_EXEC tc filter add dev geneve0 parent 1: prio 12 \
     protocol arp \
     matchall \
@@ -163,10 +166,10 @@ $SERV_EXEC tc filter add dev geneve0 parent 1: prio 12 \
     dst_port 6081 \
     id 1000 \
     action pass
-echo "### putita10"
 
 
 $SERV_EXEC tc qdisc add dev geneve1 root handle 2: prio
+# Encapsula y permite IP hacia $HIPEXT desde geneve1 hacia geneve0 con opción 0x33333333
 $SERV_EXEC tc filter add dev geneve1 parent 2: prio 10\
     protocol ip \
     flower dst_ip $HIPEXT \
@@ -177,7 +180,7 @@ $SERV_EXEC tc filter add dev geneve1 parent 2: prio 10\
     id 1000 \
     geneve_opts 0FF01:80:33333333 \
     pass
-echo "### putita11"
+# Encapsula y permite ARP hacia $HIPEXT desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent 2: prio 11\
     protocol arp \
     flower arp_tip $HIPEXT \
@@ -187,6 +190,7 @@ $SERV_EXEC tc filter add dev geneve1 parent 2: prio 11\
     dst_port 6084 \
     id 1000 \
     pass
+# Encapsula y permite ARP hacia $CUSTGWEXT desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent 2: prio 11 \
     protocol arp \
     flower arp_tip $CUSTGWEXT \
@@ -196,7 +200,7 @@ $SERV_EXEC tc filter add dev geneve1 parent 2: prio 11 \
     dst_port 6084 \
     id 1000 \
     pass
-echo "### putita12"
+# Encapsula y permite todos los ARP restantes desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent 2: prio 12 \
     protocol arp \
     matchall \
@@ -206,53 +210,53 @@ $SERV_EXEC tc filter add dev geneve1 parent 2: prio 12 \
     dst_port 6084 \
     id 1000 \
     pass
-echo "### putita13"
 
 $SERV_EXEC tc qdisc add dev geneve1 ingress
+# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent ffff: prio 10 \
     flower geneve_opts 0FF01:80:33333333 \
     action tunnel_key unset \
     action mirred egress redirect dev geneve0
-echo "### putita14"     
+# Redirige ARP hacia $HIPINT desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent ffff: prio 11 \
     protocol arp \
     flower arp_tip $HIPINT \
     action tunnel_key unset \
     action mirred egress redirect dev geneve0
+# Redirige ARP hacia $CUSTGW desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent ffff: prio 11 \
     protocol arp \
     flower arp_tip $CUSTGW \
     action tunnel_key unset \
     action mirred egress redirect dev geneve0
-echo "### putita15"
+# Redirige todos los ARP restantes desde geneve1 hacia geneve0
 $SERV_EXEC tc filter add dev geneve1 parent ffff: prio 12 \
     protocol arp \
     matchall \
     action tunnel_key unset \
     action mirred egress redirect dev geneve0
-echo "### putita16"
 $SERV_EXEC tc qdisc add dev net2 ingress
+# Redirige IP desde 192.168.255.254 en net2 hacia geneve0
 $SERV_EXEC tc filter add dev net2 parent ffff: \
     protocol ip \
     flower src_ip 192.168.255.254 \
     action mirred egress redirect dev geneve0
-echo "### putita17"
+# Redirige ARP desde 192.168.255.254 en net2 hacia geneve0
 $SERV_EXEC tc filter add dev net2 parent ffff: \
     protocol arp \
     flower arp_sip 192.168.255.254 \
     action mirred egress redirect dev geneve0
-echo "### putita18"
 $SERV_EXEC tc qdisc add dev net3 ingress
+# Redirige IP desde $TIPEXT en net3 hacia geneve0
 $SERV_EXEC tc filter add dev net3 parent ffff: \
     protocol ip \
     flower src_ip $TIPEXT \
     action mirred egress redirect dev geneve0
-echo "### putita19"
+# Redirige todo ARP desde net3 hacia geneve0
 $SERV_EXEC tc filter add dev net3 parent ffff: \
     protocol arp \
     matchall \
     action mirred egress redirect dev geneve0
-echo "### putita20"
 
 # ## 4. En VNF:cpe agregar un bridge y configurar IPs y rutas
 # echo "## 4. En VNF:cpe agregar un bridge y configurar IPs y rutas"
