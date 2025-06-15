@@ -67,9 +67,6 @@ sudo tc filter add dev geneve0 parent 1: \
     action pass
 sudo ip addr add 10.100.3.8/24 dev geneve0
 ip neigh flush dev geneve0
-sudo ip route add 10.100.3.3 dev geneve0
-sudo ip route add 10.100.3.4 dev geneve0
-sudo ip route add 10.200.1.3 dev geneve0
 sudo tc qdisc add dev geneve0 ingress
 sudo tc filter add dev geneve0 parent ffff: prio 10 \
     flower geneve_opts 0FF01:80:11111111 \
@@ -136,10 +133,6 @@ sudo tc filter add dev geneve1 parent ffff: prio 11 \
     matchall \
     action tunnel_key unset \
     action mirred egress redirect dev geneve0
-
-
-ip addr add 10.100.3.1/24 dev geneve0
-ip addr add 10.100.3.2/24 dev geneve1
 
 sudo tc qdisc add dev geneve0 root handle 1: prio
 sudo tc filter add dev geneve0 parent 1: \
@@ -237,9 +230,6 @@ sudo tc filter add dev geneve1 parent ffff: prio 11 \
     matchall \
     action tunnel_key unset \
     action mirred egress redirect dev net2
-
-
-ip addr add 10.100.3.5/24 dev geneve1
 
 sudo tc qdisc add dev geneve1 root handle 1: prio
 sudo tc filter add dev geneve1 parent 1: \

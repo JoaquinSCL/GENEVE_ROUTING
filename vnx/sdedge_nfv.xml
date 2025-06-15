@@ -113,6 +113,11 @@ SPAIN
     <if id="2" net="lan11">
         <ipv4>10.20.0.1/24</ipv4>
     </if>
+    <exec seq="on_boot" type="verbatim">
+       # Change interfaces MTU
+       ifconfig eth1 mtu 1400
+       sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.2">10.20.2.0/24</route>
   </vm>   
@@ -125,6 +130,11 @@ SPAIN
     <if id="2" net="lan21">
         <ipv4>10.20.0.2/24</ipv4>
     </if>
+    <exec seq="on_boot" type="verbatim">
+       # Change interfaces MTU
+       ifconfig eth1 mtu 1400
+       sed -i -e '/iface eth1 inet static/a \   mtu 1400' /etc/network/interfaces
+    </exec>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.1">10.20.1.0/24</route>
   </vm>   
