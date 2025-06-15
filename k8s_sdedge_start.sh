@@ -14,6 +14,7 @@ set -u # to verify variables are defined
 : $CUSTUNIP
 : $CUSTPREFIX
 : $CUSTGW
+: $CUSTGATEWAY
 : $CUSTPREFIXEXT
 : $CUSTGWEXT
 : $VNFTUNIP

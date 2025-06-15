@@ -13,6 +13,9 @@ export CUSTPREFIX="10.20.2.0/24"
 # CUSTGW: the default gateway for the customer side
 export CUSTGW="10.20.0.2"
 
+# IP privada por defecto para el router del cliente
+CUSTGATEWAY="192.168.255.253"
+
 # CUSTPREFIXEXT: the customer private prefix
 export CUSTPREFIXEXT="10.20.1.0/24"
 

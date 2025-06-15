@@ -120,6 +120,7 @@ SPAIN
     </exec>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.2">10.20.2.0/24</route>
+    <route type="ipv4" gw="192.168.255.254">0.0.0.0/0</route>
   </vm>   
 
   <vm name="r2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -137,6 +138,7 @@ SPAIN
     </exec>
     <forwarding type="ip" />
     <route type="ipv4" gw="10.20.0.1">10.20.1.0/24</route>
+    <route type="ipv4" gw="192.168.255.254">0.0.0.0/0</route>
   </vm>   
 
   <vm name="voip-gw" type="lxc" exec_mode="lxc-attach" arch="x86_64">
@@ -197,10 +199,10 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
           pass
-      # Encapsula tráfico IP destinado a 192.168.255.254 con opciones Geneve 44444444 y lo envía por geneve0
+      # Encapsula tráfico IP destinado a 192.168.255.250 con opciones Geneve 44444444 y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
-          flower dst_ip 192.168.255.254 \
+          flower dst_ip 192.168.255.250 \
           action tunnel_key set \
           src_ip 10.255.0.2 \
           dst_ip 10.255.0.1 \
@@ -292,7 +294,7 @@ SPAIN
           pass
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
-          flower dst_ip 192.168.255.254 \
+          flower dst_ip 192.168.255.250 \
           action tunnel_key set \
           src_ip 10.255.0.2 \
           dst_ip 10.255.0.1 \
@@ -346,6 +348,12 @@ SPAIN
     <route type="ipv4" gw="10.100.3.2">10.100.2.0/24</route>
 
     <filetree seq="on_boot" root="/usr/bin/" perms="755">/usr/bin/vnx_config_nat</filetree>
+    <exec seq="on_boot" type="verbatim">
+       sleep 1
+       dhclient eth9
+       sleep 1
+       /usr/bin/vnx_config_nat eth1 eth9
+    </exec>
   </vm>
   <vm name="isp2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
@@ -361,6 +369,12 @@ SPAIN
     <forwarding type="ip" />
     <route type="ipv4" gw="10.100.3.1">10.100.1.0/24</route>
     <filetree seq="on_boot" root="/usr/bin/" perms="755">/usr/bin/vnx_config_nat</filetree>
+    <exec seq="on_boot" type="verbatim">
+       sleep 1
+       dhclient eth9
+       sleep 1
+       /usr/bin/vnx_config_nat eth1 eth9
+    </exec>
   </vm>
   <vm name="s1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
