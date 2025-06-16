@@ -14,7 +14,7 @@ export CUSTPREFIX="10.20.1.0/24"
 export CUSTGW="10.20.0.1"
 
 # IP privada por defecto para el router del cliente
-CUSTGATEWAY="192.168.255.253"
+export CUSTGATEWAY="192.168.255.253"
 
 # CUSTPREFIXEXT: the customer private prefix
 export CUSTPREFIXEXT="10.20.2.0/24"

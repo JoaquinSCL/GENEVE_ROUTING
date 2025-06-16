@@ -164,6 +164,7 @@ SPAIN
       ip link set geneve0 up
       ifconfig eth1 up
       ifconfig eth2 up
+      
       tc qdisc add dev eth1 ingress
       # Redirige todo el tráfico IP entrante en eth1 hacia geneve0
       tc filter add dev eth1 parent ffff: \
@@ -188,6 +189,16 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:11111111 \
           pass
+      sudo tc filter add dev geneve0 parent 1: \
+          protocol arp \
+          flower arp_tip 10.20.0.2 \
+          action tunnel_key set \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
+          dst_port 6081 \
+          id 1000 \
+          geneve_opts 0FF01:80:11111111 \
+          pass      
       # Encapsula tráfico IP destinado a 10.20.2.200 con opciones Geneve 22222222 y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
@@ -199,7 +210,17 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
           pass
-      # Encapsula tráfico IP destinado a 192.168.255.250 con opciones Geneve 44444444 y lo envía por geneve0
+      sudo tc filter add dev geneve0 parent 1: \
+          protocol arp \
+          flower arp_tip 10.20.0.254 \
+          action tunnel_key set \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
+          dst_port 6081 \
+          id 1000 \
+          geneve_opts 0FF01:80:22222222 \
+          pass          
+      <!-- # Encapsula tráfico IP destinado a 192.168.255.250 con opciones Geneve 44444444 y lo envía por geneve0
       sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
           flower dst_ip 192.168.255.250 \
@@ -209,17 +230,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444 \
-          pass
-      # Encapsula todo el tráfico ARP saliente con Geneve y lo envía por geneve0
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol arp \
-          matchall \
-          action tunnel_key set \
-          src_ip 10.255.0.2 \
-          dst_ip 10.255.0.1 \
-          dst_port 6081 \
-          id 1000 \
-          action pass
+          pass -->
 
       sudo tc qdisc add dev geneve0 ingress
       # Desencapsula tráfico con opciones Geneve 11111111 recibido en geneve0 y lo redirige a eth1
@@ -233,16 +244,10 @@ SPAIN
           action tunnel_key unset \
           action mirred egress redirect dev eth1
       # Desencapsula tráfico con opciones Geneve 44444444 recibido en geneve0 y lo redirige a eth1
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
+      <!-- sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:44444444 \
           action tunnel_key unset \
-          action mirred egress redirect dev eth1
-      # Redirige todo el tráfico ARP recibido en geneve0 a eth1 tras quitar el túnel
-      sudo tc filter add dev geneve0 parent ffff: prio 11 \
-          protocol arp \
-          matchall \
-          action tunnel_key unset \
-          action mirred egress redirect dev eth1
+          action mirred egress redirect dev eth1 -->
     </exec>
   </vm>
 
@@ -283,6 +288,16 @@ SPAIN
           geneve_opts 0FF01:80:11111111 \
           pass
       sudo tc filter add dev geneve0 parent 1: \
+          protocol arp \
+          flower arp_tip 10.20.0.1 \
+          action tunnel_key set \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
+          dst_port 6081 \
+          id 1000 \
+          geneve_opts 0FF01:80:11111111 \
+          pass      
+      sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
           flower dst_ip 10.20.1.200 \
           action tunnel_key set \
@@ -293,6 +308,16 @@ SPAIN
           geneve_opts 0FF01:80:22222222 \
           pass
       sudo tc filter add dev geneve0 parent 1: \
+          protocol arp \
+          flower arp_tip 10.20.0.254 \
+          action tunnel_key set \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
+          dst_port 6081 \
+          id 1000 \
+          geneve_opts 0FF01:80:22222222 \
+          pass          
+      <!-- sudo tc filter add dev geneve0 parent 1: \
           protocol ip \
           flower dst_ip 192.168.255.250 \
           action tunnel_key set \
@@ -301,16 +326,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444 \
-          pass
-      sudo tc filter add dev geneve0 parent 1: \
-          protocol arp \
-          matchall \
-          action tunnel_key set \
-          src_ip 10.255.0.2 \
-          dst_ip 10.255.0.1 \
-          dst_port 6081 \
-          id 1000 \
-          action pass
+          pass -->
 
       sudo tc qdisc add dev geneve0 ingress
       sudo tc filter add dev geneve0 parent ffff: prio 10 \
@@ -321,15 +337,10 @@ SPAIN
           flower geneve_opts 0FF01:80:22222222 \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
-      sudo tc filter add dev geneve0 parent ffff: prio 10 \
+      <!-- sudo tc filter add dev geneve0 parent ffff: prio 10 \
           flower geneve_opts 0FF01:80:44444444 \
           action tunnel_key unset \
-          action mirred egress redirect dev eth1
-      sudo tc filter add dev geneve0 parent ffff: prio 11 \
-          protocol arp \
-          matchall \
-          action tunnel_key unset \
-          action mirred egress redirect dev eth1
+          action mirred egress redirect dev eth1 -->
     </exec>
   </vm>
 
