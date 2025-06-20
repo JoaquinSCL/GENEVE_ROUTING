@@ -203,7 +203,8 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:11111111 \
-          pass      
+          action pedit ex munge ip ttl set 64 \
+          action pass
       # Encapsula tráfico IP destinado a 10.20.2.200 con opciones Geneve 22222222 y lo envía por geneve0
       echo "Adding egress filters to geneve0"
       sudo tc filter add dev geneve0 egress \
@@ -227,7 +228,8 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
-          pass          
+          action pedit ex munge ip ttl set 64 \
+          action pass          
       <!-- # Encapsula tráfico IP destinado a 192.168.255.250 con opciones Geneve 44444444 y lo envía por geneve0
       sudo tc filter add dev geneve0 egress \
           protocol ip \
@@ -241,7 +243,6 @@ SPAIN
           action pedit ex munge ip ttl set 64\
           action pass -->
 
-      sudo tc qdisc add dev geneve0 clsact
       # Desencapsula tráfico con opciones Geneve 11111111 recibido en geneve0 y lo redirige a eth1
       sudo tc filter add dev geneve0 ingress \
           flower geneve_opts 0FF01:80:11111111 \
@@ -309,7 +310,8 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:11111111 \
-          pass      
+          action pedit ex munge ip ttl set 64 \
+          action pass      
       echo "Adding egress filters to geneve0"
       sudo tc filter add dev geneve0 egress \
           protocol ip \
@@ -332,7 +334,8 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
-          pass          
+          action pedit ex munge ip ttl set 64 \
+          action pass          
       <!-- sudo tc filter add dev geneve0 egress \
           protocol ip \
           flower dst_ip 192.168.255.250 \
@@ -345,7 +348,6 @@ SPAIN
           action pedit ex munge ip ttl set 64\
           action pass -->
 
-      sudo tc qdisc add dev geneve0 clsact
       sudo tc filter add dev geneve0 ingress \
           flower geneve_opts 0FF01:80:11111111 \
           action tunnel_key unset \

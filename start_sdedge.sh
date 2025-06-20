@@ -110,9 +110,9 @@ $SERV_EXEC tc filter replace dev geneve1 egress \
     dst_port 6084 \
     id 1000 \
     geneve_opts 0FF01:80:33333333 \
-    pass      
+    action pedit ex munge ip ttl set 64 \
+    action pass    
 
-$SERV_EXEC tc qdisc add dev geneve1 clsact
 # Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0
 echo "# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0"
 $SERV_EXEC tc filter add dev geneve1 ingress \
@@ -148,7 +148,6 @@ $SERV_EXEC tc filter replace dev net3 ingress \
     action mirred egress redirect dev geneve0
 
 
-$SERV_EXEC tc qdisc add dev geneve0 clsact
 # Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve0 con opción 0x11111111
 echo "# Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve0 con opción 0x11111111"
 $SERV_EXEC tc filter add dev geneve0 egress \
@@ -173,7 +172,8 @@ $SERV_EXEC tc filter add dev geneve0 egress \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:11111111 \
-    pass
+    action pedit ex munge ip ttl set 64 \
+    action pass
 # Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve0 con opción 0x22222222
 echo "# Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve0 con opción 0x22222222"
 $SERV_EXEC tc filter add dev geneve0 egress \
