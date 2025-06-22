@@ -35,10 +35,10 @@ export VCPEPUBIPEXT="10.100.2.1"
 export VCPEPUBPREFIXEXT="10.100.2.0/24"
 
 # HIPINT: the public ip address for the host of the other headquarters
-export HIPINT="10.20.1.2"
+export HIPINT="10.20.1.0/25"
 
 # HIPEXT: the public ip address for the host of the other headquarters
-export HIPEXT="10.20.2.2"
+export HIPEXT="10.20.2.0/25"
 
 # TIPINT: the public ip address for the host of the other headquarters
 export TIPINT="10.20.1.200"

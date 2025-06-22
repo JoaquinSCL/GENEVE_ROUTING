@@ -57,12 +57,10 @@ $SERV_EXEC ifconfig net2 $VCPEPUBIP/24
 #$SERV_EXEC ip route add $CUSTPREFIX via $CUSTUNIP
 # $SERV_EXEC ip route add $CUSTPREFIXEXT via $CUSTGWEXT
 #$CPE_EXEC ip route add $CUSTPREFIX via $CUSTGATEWAY
-#$SERV_EXEC ip route add $VCPEPUBPREFIXEXT via $VCPEGW dev net2
-$SERV_EXEC ip route del 0.0.0.0/0 via $K8SGW
-$SERV_EXEC ip route add 0.0.0.0/0 via $VCPEGW dev net2
+$SERV_EXEC ip route add $VCPEPUBPREFIXEXT via $VCPEGW dev net2
+# $SERV_EXEC ip route del 0.0.0.0/0 via $K8SGW
+# $SERV_EXEC ip route add 0.0.0.0/0 via $VCPEGW dev net2
 
-$SERV_EXEC tc qdisc del dev geneve1 clsact 2>/dev/null || true
-$SERV_EXEC tc qdisc del dev net3 clsact 2>/dev/null || true
 
 
 $SERV_EXEC tc qdisc add dev geneve0 clsact
@@ -89,29 +87,14 @@ $SERV_EXEC tc qdisc add dev geneve1 clsact
 # Encapsula y permite IP hacia $HIPEXT desde geneve1 hacia geneve1 con opción 0x33333333
 echo "# Encapsula y permite IP hacia $HIPEXT desde geneve1 hacia geneve1 con opción 0x33333333"
 $SERV_EXEC tc filter add dev geneve1 egress \
-    protocol ip \
-    flower dst_ip $HIPEXT \
+    matchall \
     action tunnel_key set \
     src_ip $VCPEPUBIP \
     dst_ip $VCPEPUBIPEXT \
     dst_port 6084 \
     id 1000 \
     geneve_opts 0FF01:80:33333333 \
-    action pedit ex munge ip ttl set 64 \
-    action pass
-# Encapsula y permite ARP hacia $CUSTGWEXT desde geneve1 hacia geneve1 con opción 0x33333333
-echo "# Encapsula y permite ARP hacia $CUSTGWEXT desde geneve1 hacia geneve1 con opción 0x33333333"
-$SERV_EXEC tc filter replace dev geneve1 egress \
-    protocol arp \
-    flower arp_tip $CUSTGWEXT \
-    action tunnel_key set \
-    src_ip $VCPEPUBIP \
-    dst_ip $VCPEPUBIPEXT \
-    dst_port 6084 \
-    id 1000 \
-    geneve_opts 0FF01:80:33333333 \
-    action pedit ex munge ip ttl set 64 \
-    action pass    
+    action pass 
 
 # Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0
 echo "# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0"
@@ -137,16 +120,8 @@ $SERV_EXEC tc qdisc add dev net3 clsact
 # Redirige IP desde $TIPEXT en net3 hacia geneve0
 echo "# Redirige IP desde $TIPEXT en net3 hacia geneve0"
 $SERV_EXEC tc filter add dev net3 ingress \
-    protocol ip \
-    flower src_ip $TIPEXT \
+    matchall \
     action mirred egress redirect dev geneve0
-# Redirige ARP desde net3 hacia geneve0
-echo "# Redirige ARP desde $CUSTGWEXT en net3 hacia geneve0"
-$SERV_EXEC tc filter replace dev net3 ingress \
-    protocol arp \
-    flower arp_tip $CUSTGWEXT \
-    action mirred egress redirect dev geneve0
-
 
 # Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve0 con opción 0x11111111
 echo "# Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve0 con opción 0x11111111"
@@ -159,7 +134,6 @@ $SERV_EXEC tc filter add dev geneve0 egress \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:11111111 \
-    action pedit ex munge ip ttl set 64 \
     action pass
 # Encapsula y permite ARP hacia $CUSTGW desde geneve0 hacia geneve0 con opción 0x11111111
 echo "# Encapsula y permite ARP hacia $CUSTGW desde geneve0 hacia geneve0 con opción 0x11111111"
@@ -172,20 +146,17 @@ $SERV_EXEC tc filter add dev geneve0 egress \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:11111111 \
-    action pedit ex munge ip ttl set 64 \
     action pass
 # Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve0 con opción 0x22222222
 echo "# Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve0 con opción 0x22222222"
 $SERV_EXEC tc filter add dev geneve0 egress \
-    protocol ip \
-    flower dst_ip $TIPINT \
+    matchall \
     action tunnel_key set \
     src_ip $VNFTUNIP \
     dst_ip $CUSTUNIP \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:22222222 \
-    action pedit ex munge ip ttl set 64 \
     action pass
 # Encapsula y permite IP desde 192.168.255.250 desde geneve0 hacia geneve0 con opción 0x44444444
 echo "# Encapsula y permite IP desde 192.168.255.250 desde geneve0 hacia geneve0 con opción 0x44444444"
@@ -198,7 +169,8 @@ echo "# Encapsula y permite IP desde 192.168.255.250 desde geneve0 hacia geneve0
 #     dst_port 6081 \
 #     id 1000 \
 #     geneve_opts 0FF01:80:44444444 \
-#     action pedit ex munge ip ttl set 64 \
 #     action pass
 
 # $CPE_EXEC /vnx_config_nat brint net$NETNUM
+
+$SERV_EXEC iptables -t mangle -A POSTROUTING -o net2 -p ip -j TTL --ttl-set 32
