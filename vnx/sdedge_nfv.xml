@@ -39,9 +39,11 @@ SPAIN
     
   <net name="lan1" mode="virtual_bridge" />
   <net name="lan11" mode="veth" type="p2p"/>
+  <net name="lan12" mode="veth" type="p2p"/>
   <net name="AccessNet1" mode="openvswitch" managed="no"/>
   <net name="lan2" mode="virtual_bridge" />
   <net name="lan21" mode="veth" type="p2p"/>
+  <net name="lan22" mode="veth" type="p2p"/>
   <net name="AccessNet2" mode="openvswitch" managed="no"/>
 
   <net name="Internet" mode="openvswitch"/>
@@ -113,6 +115,9 @@ SPAIN
     <if id="2" net="lan11">
         <ipv4>10.20.0.1/24</ipv4>
     </if>
+    <if id="3" net="lan12">
+        <ipv4>192.168.255.253/24</ipv4>
+    </if>
     <exec seq="on_boot" type="verbatim">
        # Change interfaces MTU
        ifconfig eth1 mtu 1400
@@ -130,6 +135,9 @@ SPAIN
     </if>
     <if id="2" net="lan21">
         <ipv4>10.20.0.2/24</ipv4>
+    </if>
+    <if id="3" net="lan22">
+        <ipv4>192.168.255.253/24</ipv4>
     </if>
     <exec seq="on_boot" type="verbatim">
        # Change interfaces MTU
@@ -156,7 +164,9 @@ SPAIN
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
     <if id="1" net="lan11">
     </if>
-    <if id="2" net="AccessNet1">
+    <if id="2" net="lan12">
+    </if>
+    <if id="3" net="AccessNet1">
       <ipv4>10.255.0.2/24</ipv4>
     </if>
     <exec seq="on_boot" type="verbatim">
@@ -164,9 +174,16 @@ SPAIN
       ip link set geneve0 up
       ifconfig eth1 up
       ifconfig eth2 up
+      ifconfig eth3 up
+
       sudo tc qdisc add dev eth1 clsact
       echo "Adding ingress filters to eth1"
       sudo tc filter add dev eth1 ingress prio 1 \
+          matchall \
+          action mirred egress redirect dev geneve0
+      sudo tc qdisc add dev eth2 clsact
+      echo "Adding ingress filters to eth2"
+      sudo tc filter add dev eth2 ingress prio 1 \
           matchall \
           action mirred egress redirect dev geneve0
       
@@ -185,7 +202,7 @@ SPAIN
           pass
       # Encapsula tráfico IP destinado a 10.20.2.200 con opciones Geneve 22222222 y lo envía por geneve0
       echo "Adding egress filters to geneve0"
-      sudo tc filter add dev geneve0 egress prio 2 \
+      sudo tc filter add dev geneve0 egress prio 4 \
           matchall \
           action tunnel_key set \
           src_ip 10.255.0.2 \
@@ -194,18 +211,27 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
           pass
-      <!-- # Encapsula tráfico IP destinado a 192.168.255.250 con opciones Geneve 44444444 y lo envía por geneve0
-      sudo tc filter add dev geneve0 egress \
+      # Encapsula tráfico IP destinado a 8.8.8.8 con opciones Geneve 44444444 y lo envía por geneve0
+      sudo tc filter add dev geneve0 egress prio 2 \
           protocol ip \
-          flower dst_ip 192.168.255.250 \
+          flower dst_ip 8.8.8.8 \
           action tunnel_key set \
           src_ip 10.255.0.2 \
           dst_ip 10.255.0.1 \
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444 \
-          action pedit munge offset 8 u8 set 16 \
-          action pass -->
+          action pass
+      sudo tc filter add dev geneve0 egress prio 3 \
+          protocol arp \
+          flower arp_sip 192.168.255.253 \
+          action tunnel_key set \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
+          dst_port 6081 \
+          id 1000 \
+          geneve_opts 0FF01:80:44444444 \
+          action pass
 
       # Desencapsula tráfico con opciones Geneve 11111111 recibido en geneve0 y lo redirige a eth1
       sudo tc filter add dev geneve0 ingress \
@@ -218,11 +244,11 @@ SPAIN
           action tunnel_key unset \
           action mirred egress redirect dev eth1
       # Desencapsula tráfico con opciones Geneve 44444444 recibido en geneve0 y lo redirige a eth1
-      <!-- sudo tc filter add dev geneve0 ingress \
+      sudo tc filter add dev geneve0 ingress \
           flower geneve_opts 0FF01:80:44444444 \
           action tunnel_key unset \
-          action mirred egress redirect dev eth1 -->
-      iptables -t mangle -A POSTROUTING -o eth2 -p ip -j TTL --ttl-set 32
+          action mirred egress redirect dev eth2
+      iptables -t mangle -A POSTROUTING -o eth3 -p ip -j TTL --ttl-set 32
     </exec>
   </vm>
 
@@ -230,7 +256,9 @@ SPAIN
     <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
     <if id="1" net="lan21">
     </if>
-    <if id="2" net="AccessNet2">
+    <if id="2" net="lan22">
+    </if>
+    <if id="3" net="AccessNet2">
       <ipv4>10.255.0.2/24</ipv4>
     </if>
     <exec seq="on_boot" type="verbatim">
@@ -238,12 +266,19 @@ SPAIN
       ip link set geneve0 up
       ifconfig eth1 up
       ifconfig eth2 up
+      ifconfig eth3 up
 
       ## La sección duplicada en bcg2 realiza exactamente lo mismo, solo cambia el destino (10.20.1.x) en lugar de 10.20.2.x
 
       sudo tc qdisc add dev eth1 clsact
       # Redirige todo el tráfico entrante en eth1 hacia geneve0
       sudo tc filter add dev eth1 ingress \
+          matchall \
+          action mirred egress redirect dev geneve0
+      
+      sudo tc qdisc add dev eth2 clsact
+      # Redirige todo el tráfico entrante en eth2 hacia geneve0
+      sudo tc filter add dev eth2 ingress \
           matchall \
           action mirred egress redirect dev geneve0
       
@@ -260,7 +295,7 @@ SPAIN
           geneve_opts 0FF01:80:11111111 \
           pass
       echo "Adding egress filters to geneve0"
-      sudo tc filter add dev geneve0 egress prio 2 \
+      sudo tc filter add dev geneve0 egress prio 4 \
           matchall \
           action tunnel_key set \
           src_ip 10.255.0.2 \
@@ -269,16 +304,26 @@ SPAIN
           id 1000 \
           geneve_opts 0FF01:80:22222222 \
           pass
-      <!-- sudo tc filter add dev geneve0 egress \
+      sudo tc filter add dev geneve0 egress prio 2 \
           protocol ip \
-          flower dst_ip 192.168.255.250 \
+          flower dst_ip 8.8.8.8 \
           action tunnel_key set \
           src_ip 10.255.0.2 \
           dst_ip 10.255.0.1 \
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444 \
-          action pass -->
+          action pass
+      sudo tc filter add dev geneve0 egress prio 3 \
+          protocol arp \
+          flower arp_sip 192.168.255.253 \
+          action tunnel_key set \
+          src_ip 10.255.0.2 \
+          dst_ip 10.255.0.1 \
+          dst_port 6081 \
+          id 1000 \
+          geneve_opts 0FF01:80:44444444 \
+          action pass
 
       sudo tc filter add dev geneve0 ingress \
           flower geneve_opts 0FF01:80:11111111 \
@@ -288,11 +333,11 @@ SPAIN
           flower geneve_opts 0FF01:80:22222222 \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
-      <!-- sudo tc filter add dev geneve0 ingress \
+      sudo tc filter add dev geneve0 ingress \
           flower geneve_opts 0FF01:80:44444444 \
           action tunnel_key unset \
-          action mirred egress redirect dev eth1 -->
-      iptables -t mangle -A POSTROUTING -o eth2 -p ip -j TTL --ttl-set 32
+          action mirred egress redirect dev eth2
+      iptables -t mangle -A POSTROUTING -o eth3 -p ip -j TTL --ttl-set 32
     </exec>
   </vm>
 
