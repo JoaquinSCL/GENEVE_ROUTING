@@ -41,10 +41,10 @@ export HIPINT="10.20.1.0/25"
 export HIPEXT="10.20.2.0/25"
 
 # TIPINT: the public ip address for the host of the other headquarters
-export TIPINT="10.20.1.200"
+export TIPINT="10.20.1.192/28"
 
 # TIPEXT: the public ip address for the host of the other headquarters
-export TIPEXT="10.20.2.200"
+export TIPEXT="10.20.2.192/28"
 
 # VCPEGW: the default gateway for the vcpe
 export VCPEGW="10.100.1.254"
