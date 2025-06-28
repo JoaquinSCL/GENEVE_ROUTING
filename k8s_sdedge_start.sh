@@ -1,32 +1,18 @@
 #!/bin/bash
-  
-# Requires the following variables
-# SDWNS: cluster namespace in the cluster vim
-# NETNUM: used to select external networks
-# CUSTUNIP: the ip address for the customer side of the tunnel
-# VNFTUNIP: the ip address for the vnf side of the tunnel
-# VCPEPUBIP: the public ip address for the vcpe
-# VCPEGW: the default gateway for the vcpe
 
 set -u # to verify variables are defined
 : $SDWNS
 : $NETNUM
 : $CUSTUNIP
 : $CUSTPREFIX
-: $CUSTGW
 : $CUSTGATEWAY
-: $CUSTPREFIXEXT
-: $CUSTGWEXT
 : $VNFTUNIP
 : $VCPEPUBIP
-: $VCPEPUBPREFIXEXT
 : $VCPEGW
-: $VCPEPRIVIP
 : $K8SGW
 : $HIPEXT
 : $TIPEXT
 : $HIPINT
-: $GEN1IP
 : $VCPEPUBIPEXT
 
 export KUBECTL="microk8s kubectl"

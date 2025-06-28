@@ -1,17 +1,5 @@
 #!/bin/bash
 
-# Requires the following variables
-# KUBECTL: kubectl command
-# SDWNS: cluster namespace in the cluster vim
-# NETNUM: used to select external networks
-# VACC: "pod_id" or "deploy/deployment_id" of the access vnf
-# VCPE: "pod_id" or "deploy/deployment_id" of the cpd vnf
-# VWAN: "pod_id" or "deploy/deployment_id" of the wan vnf
-# CUSTUNIP: the ip address for the customer side of the tunnel
-# VNFTUNIP: the ip address for the vnf side of the tunnel
-# VCPEPUBIP: the public ip address for the vcpe
-# VCPEGW: the default gateway for the vcpe
-
 set -u # to verify variables are defined
 : $KUBECTL
 : $SDWNS
@@ -19,18 +7,14 @@ set -u # to verify variables are defined
 : $VSERV
 : $CUSTUNIP
 : $CUSTPREFIX
-: $CUSTGW
-: $CUSTPREFIXEXT
-: $CUSTGWEXT
 : $VNFTUNIP
 : $VCPEPUBIP
 : $VCPEGW
-: $VCPEPRIVIP
 : $K8SGW
 : $HIPEXT
 : $TIPEXT
 : $HIPINT
-: $GEN1IP
+: $VCPEPUBIPEXT
 
 if [[ ! $VSERV =~ "-cpechart"  ]]; then
     echo ""       
@@ -51,7 +35,7 @@ $SERV_EXEC ip link set geneve1 up
 
 $SERV_EXEC ifconfig net1 $VNFTUNIP/24
 $SERV_EXEC ifconfig net2 $VCPEPUBIP/24
-# $SERV_EXEC ip route add $VCPEPUBPREFIXEXT via $VCPEGW dev net2
+
 $SERV_EXEC ip route del 0.0.0.0/0 via $K8SGW
 $SERV_EXEC ip route add 0.0.0.0/0 via $VCPEGW dev net2
 
@@ -139,6 +123,8 @@ $SERV_EXEC tc filter add dev geneve0 egress prio 5 \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:44444444
+# Encapsula y permite ARP hacia 192.168.255.253
+echo "# Encapsula y permite ARP hacia 192.168.255.253"
 $SERV_EXEC tc filter add dev geneve0 egress prio 3 \
     protocol arp \
     flower arp_tip 192.168.255.253 \
@@ -148,6 +134,8 @@ $SERV_EXEC tc filter add dev geneve0 egress prio 3 \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:44444444
+# Encapsula y permite todo el tráfico ARP restante
+echo "# Encapsula y permite todo el tráfico ARP restante"
 $SERV_EXEC tc filter add dev geneve0 egress prio 4 \
     protocol arp \
     matchall \
@@ -158,7 +146,8 @@ $SERV_EXEC tc filter add dev geneve0 egress prio 4 \
     id 1000 \
     geneve_opts 0FF01:80:22222222
 
-
+# ## 2. En VNF:server configurar NAT
+echo "## 2. En VNF:server configurar NAT"
 $SERV_EXEC sed -i 's/\r$//' vnx_config_nat
 $SERV_EXEC ./vnx_config_nat br0 net2
 

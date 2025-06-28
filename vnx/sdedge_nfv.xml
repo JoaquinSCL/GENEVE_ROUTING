@@ -176,6 +176,7 @@ SPAIN
       ifconfig eth2 up
       ifconfig eth3 up
 
+      # Redirige el tráfico de eth1 y eth2 hacia geneve0
       sudo tc qdisc add dev eth1 clsact
       sudo tc filter add dev eth1 ingress prio 1 \
           matchall \
@@ -186,6 +187,7 @@ SPAIN
           action mirred egress redirect dev geneve0
       
       sudo tc qdisc add dev geneve0 clsact
+      # Encapsula tráfico con opciones Geneve 11111111 hacia geneve0 desde h1
       sudo tc filter add dev geneve0 egress prio 1 \
           protocol ip \
           flower dst_ip 10.20.2.0/25 \
@@ -195,6 +197,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:11111111
+      # Encapsula tráfico con opciones Geneve 22222222 hacia geneve0 desde t1
       sudo tc filter add dev geneve0 egress prio 2 \
           protocol ip \
           flower dst_ip 10.20.2.192/28 \
@@ -204,6 +207,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:22222222
+      # Encapsula tráfico restante con opciones Geneve 44444444 hacia geneve0
       sudo tc filter add dev geneve0 egress prio 5 \
           matchall \
           action tunnel_key set \
@@ -212,6 +216,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444
+      # Encapsula tráfico ARP hacia 192.168.255.253 con opciones Geneve 44444444
       sudo tc filter add dev geneve0 egress prio 3 \
           protocol arp \
           flower arp_sip 192.168.255.253 \
@@ -221,6 +226,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444
+      # Encapsula todo el tráfico ARP restante con opciones Geneve 22222222
       sudo tc filter add dev geneve0 egress prio 4 \
           protocol arp \
           matchall \
