@@ -177,19 +177,15 @@ SPAIN
       ifconfig eth3 up
 
       sudo tc qdisc add dev eth1 clsact
-      echo "Adding ingress filters to eth1"
       sudo tc filter add dev eth1 ingress prio 1 \
           matchall \
           action mirred egress redirect dev geneve0
       sudo tc qdisc add dev eth2 clsact
-      echo "Adding ingress filters to eth2"
       sudo tc filter add dev eth2 ingress prio 1 \
           matchall \
           action mirred egress redirect dev geneve0
       
       sudo tc qdisc add dev geneve0 clsact
-      # Encapsula tráfico IP destinado a 10.20.2.2 con opciones Geneve 11111111 y lo envía por geneve0
-      echo "Adding egress filters to geneve0"
       sudo tc filter add dev geneve0 egress prio 1 \
           protocol ip \
           flower dst_ip 10.20.2.0/25 \
