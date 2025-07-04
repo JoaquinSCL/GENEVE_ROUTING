@@ -67,8 +67,8 @@ $SERV_EXEC tc filter add dev geneve0 ingress prio 10 \
     action tunnel_key unset
 
 $SERV_EXEC tc qdisc add dev geneve1 clsact
-# Encapsula y permite IP hacia $HIPEXT desde geneve1 hacia geneve1 con opción 0x33333333
-echo "# Encapsula y permite IP hacia $HIPEXT desde geneve1 hacia geneve1 con opción 0x33333333"
+# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve1 del site contrario
+echo "# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve1 del site contrario"
 $SERV_EXEC tc filter add dev geneve1 egress \
     matchall \
     action tunnel_key set \
@@ -77,8 +77,8 @@ $SERV_EXEC tc filter add dev geneve1 egress \
     dst_port 6084 \
     id 1000 \
     geneve_opts 0FF01:80:33333333 
-# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0
-echo "# Redirige tráfico Geneve con opción 0x33333333 desde geneve1 hacia geneve0"
+# Redirige tráfico Geneve desde geneve1 hacia geneve0
+echo "# Redirige tráfico Geneve desde geneve1 hacia geneve0"
 $SERV_EXEC tc filter add dev geneve1 ingress \
     flower geneve_opts 0FF01:80:33333333 \
     action tunnel_key unset \
@@ -91,8 +91,8 @@ $SERV_EXEC tc filter add dev net3 ingress \
     matchall \
     action mirred egress redirect dev geneve0
 
-# Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve0 con opción 0x11111111
-echo "# Encapsula y permite IP hacia $HIPINT desde geneve0 hacia geneve0 con opción 0x11111111"
+# Encapsula y permite IP desde $HIPEXT desde geneve0 hacia geneve0 con opción 0x11111111
+echo "# Encapsula y permite IP desde $HIPEXT desde geneve0 hacia geneve0 con opción 0x11111111"
 $SERV_EXEC tc filter add dev geneve0 egress prio 1 \
     protocol ip \
     flower src_ip $HIPEXT \
@@ -102,8 +102,8 @@ $SERV_EXEC tc filter add dev geneve0 egress prio 1 \
     dst_port 6081 \
     id 1000 \
     geneve_opts 0FF01:80:11111111
-# Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve0 con opción 0x22222222
-echo "# Encapsula y permite IP hacia $TIPINT desde geneve0 hacia geneve0 con opción 0x22222222"
+# Encapsula y permite IP desde $TIPEXT desde geneve0 hacia geneve0 con opción 0x22222222
+echo "# Encapsula y permite IP desde $TIPEXT desde geneve0 hacia geneve0 con opción 0x22222222"
 $SERV_EXEC tc filter add dev geneve0 egress prio 2 \
     protocol ip \
     flower src_ip $TIPEXT \
@@ -114,7 +114,7 @@ $SERV_EXEC tc filter add dev geneve0 egress prio 2 \
     id 1000 \
     geneve_opts 0FF01:80:22222222
 # Encapsula y permite IP desde 192.168.255.250 desde geneve0 hacia geneve0 con opción 0x44444444
-echo "# Encapsula y permite IP desde 8.8.8.8 desde geneve0 hacia geneve0 con opción 0x44444444"
+echo "# Encapsula y permite IP desde internet desde geneve0 hacia geneve0 con opción 0x44444444"
 $SERV_EXEC tc filter add dev geneve0 egress prio 5 \
     matchall \
     action tunnel_key set \

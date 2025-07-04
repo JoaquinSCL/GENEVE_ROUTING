@@ -216,7 +216,7 @@ SPAIN
           dst_port 6081 \
           id 1000 \
           geneve_opts 0FF01:80:44444444
-      # Encapsula tráfico ARP hacia 192.168.255.253 con opciones Geneve 44444444
+      # Encapsula tráfico ARP desde 192.168.255.253 con opciones Geneve 44444444
       sudo tc filter add dev geneve0 egress prio 3 \
           protocol arp \
           flower arp_sip 192.168.255.253 \
@@ -247,7 +247,7 @@ SPAIN
           flower geneve_opts 0FF01:80:22222222 \
           action tunnel_key unset \
           action mirred egress redirect dev eth1
-      # Desencapsula tráfico con opciones Geneve 44444444 recibido en geneve0 y lo redirige a eth1
+      # Desencapsula tráfico con opciones Geneve 44444444 recibido en geneve0 y lo redirige a eth2
       sudo tc filter add dev geneve0 ingress \
           flower geneve_opts 0FF01:80:44444444 \
           action tunnel_key unset \
@@ -272,7 +272,7 @@ SPAIN
       ifconfig eth2 up
       ifconfig eth3 up
 
-      ## La sección duplicada en bcg2 realiza exactamente lo mismo, solo cambia el destino (10.20.1.x) en lugar de 10.20.2.x
+      ## La sección en bcg2 realiza exactamente lo mismo que bcg1
 
       sudo tc qdisc add dev eth1 clsact
       sudo tc filter add dev eth1 ingress prio 1 \
