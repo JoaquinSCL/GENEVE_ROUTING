@@ -10,7 +10,7 @@ export CUSTUNIP="10.255.0.2"
 # CUSTPREFIX: the customer private prefix
 export CUSTPREFIX="10.20.1.0/24"
 
-# IP privada por defecto para el router del cliente
+# CUSTGATEWAY: Client Router Default Private IP
 export CUSTGATEWAY="192.168.255.253"
 
 # VNFTUNIP: the ip address for the vnf side of the tunnel
@@ -22,22 +22,22 @@ export VCPEPUBIP="10.100.1.1"
 # VCPEPUBIPEXT: the public ip address for the vcpe in the other side of the tunnel
 export VCPEPUBIPEXT="10.100.2.1"
 
-# HIPINT: the public ip address for the host of the other headquarters
+# HIPINT: the public ip address for the host of the same headquarters
 export HIPINT="10.20.1.0/25"
 
 # HIPEXT: the public ip address for the host of the other headquarters
 export HIPEXT="10.20.2.0/25"
 
-# TIPINT: the public ip address for the host of the other headquarters
+# TIPINT: the public ip address for the telephone of the same headquarters
 export TIPINT="10.20.1.192/28"
 
-# TIPEXT: the public ip address for the host of the other headquarters
+# TIPEXT: the public ip address for the telephone of the other headquarters
 export TIPEXT="10.20.2.192/28"
 
 # VCPEGW: the default gateway for the vcpe
 export VCPEGW="10.100.1.254"
 
-# K8SGW: Router por defecto inicial en k8s (calico)
+# K8SGW: Initial Default Router in k8s (calico)
 export K8SGW="169.254.1.1"
 
 # HELM SECTION
