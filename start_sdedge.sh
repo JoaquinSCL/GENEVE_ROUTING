@@ -52,7 +52,6 @@ $SERV_EXEC tc qdisc add dev geneve0 clsact
 echo "# Redirige tráfico Geneve con opción 0x11111111 desde geneve0 hacia geneve1"
 $SERV_EXEC tc filter add dev geneve0 ingress prio 10 \
     flower geneve_opts 0FF01:80:11111111 \
-    action tunnel_key unset \
     action mirred egress redirect dev geneve1
 # Redirige tráfico Geneve con opción 0x22222222 desde geneve0 hacia net3
 echo "# Redirige tráfico Geneve con opción 0x22222222 desde geneve0 hacia net3"
@@ -81,7 +80,6 @@ $SERV_EXEC tc filter add dev geneve1 egress \
 echo "# Redirige tráfico Geneve desde geneve1 hacia geneve0"
 $SERV_EXEC tc filter add dev geneve1 ingress \
     flower geneve_opts 0FF01:80:33333333 \
-    action tunnel_key unset \
     action mirred egress redirect dev geneve0
 
 $SERV_EXEC tc qdisc add dev net3 clsact
